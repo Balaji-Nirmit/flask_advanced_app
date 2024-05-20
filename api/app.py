@@ -12,7 +12,7 @@ from io import StringIO
 app = Flask(__name__)
 
 # Establish connection to PostgreSQL database
-DATABASE_URL = os.environ['DATABASE_URL']  # Assuming you're using Heroku with the DATABASE_URL environment variable
+DATABASE_URL = os.environ['postgres://default:oPwYcD8vUj0G@ep-bold-mouse-a1zyrphk.ap-southeast-1.aws.neon.tech:5432/verceldb?sslmode=require']  # Assuming you're using Heroku with the DATABASE_URL environment variable
 conn = psycopg2.connect(DATABASE_URL)
 status='none'
 # Create tables in PostgreSQL database
