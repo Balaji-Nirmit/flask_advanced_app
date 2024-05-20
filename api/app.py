@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, session, redirect, url_for, flash, send_from_directory, make_response
-import psycopg2
+from flask import Flask,render_template,request,session,redirect,url_for,flash,send_from_directory,make_response
+import sqlite3
 import datetime
 import time
 import os
@@ -9,115 +9,99 @@ import folium
 import csv
 from io import StringIO
 
-app = Flask(__name__)
-
-# Establish connection to PostgreSQL database
-DATABASE_URL = os.environ['postgres://default:oPwYcD8vUj0G@ep-bold-mouse-a1zyrphk.ap-southeast-1.aws.neon.tech:5432/verceldb?sslmode=require']  # Assuming you're using Heroku with the DATABASE_URL environment variable
-conn = psycopg2.connect(DATABASE_URL)
 status='none'
-# Create tables in PostgreSQL database
-with conn.cursor() as cursor:
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS staff (
-        ID VARCHAR(6) PRIMARY KEY NOT NULL UNIQUE,
-        NAME VARCHAR(20) NOT NULL,
-        PASSWORD TEXT NOT NULL,
-        EMAIL TEXT NOT NULL UNIQUE,
-        PHONENUMBER INT NOT NULL UNIQUE,
-        AGE INT NOT NULL,
-        GENDER CHAR(1) NOT NULL,
-        DOB TIMESTAMP NOT NULL,
-        JOINING_DATE TIMESTAMP NOT NULL,
-        BRANCH VARCHAR(50) NOT NULL,
-        DESIGNATION VARCHAR(40) NOT NULL,
-        RETIRED_OR_SUSPENDED CHAR(3) NOT NULL,
-        IMAGE TEXT NOT NULL,
-        ADDRESS TEXT NOT NULL
-    )
-    ''')
+# creating tables of database
 
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS criminal (
-        ID VARCHAR(6) PRIMARY KEY NOT NULL UNIQUE,
-        NAME VARCHAR(20) NOT NULL,
-        PHONENUMBER INT NOT NULL,
-        AGE INT NOT NULL,
-        GENDER CHAR(1) NOT NULL,
-        DOB TIMESTAMP,
-        JAILED CHAR(1) NOT NULL,
-        IMAGE TEXT,
-        ADDRESS TEXT NOT NULL
-    )
-    ''')
+conn = sqlite3.connect('POLICE_RECORD.db')
+conn.execute('CREATE TABLE IF NOT EXISTS staff (\
+ID VARCHAR(6) PRIMARY KEY NOT NULL UNIQUE,\
+NAME VARCHAR(20) NOT NULL, \
+PASSWORD TEXT NOT NULL, \
+EMAIL TEXT NOT NULL UNIQUE,\
+PHONENUMBER  INT NOT NULL UNIQUE,\
+AGE INT NOT NULL,\
+GENDER CHAR(1) NOT NULL,\
+DOB TIMESTAMP NOT NULL,\
+JOINING_DATE TIMESTAMP NOT NULL,\
+BRANCH VARCHAR(50) NOT NULL,\
+DESIGNATION VARCHAR(40) NOT NULL,\
+RETIRED_OR_SUSPENDED CHAR(3) NOT NULL,\
+IMAGE TEXT NOT NULL,\
+ADDRESS TEXT NOT NULL)')
 
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS complaints (
-        District_Name VARCHAR(50) NOT NULL,
-        UnitName VARCHAR(50) NOT NULL,
-        FIRNo INT NOT NULL,
-        RI INT NOT NULL,
-        Year TIMESTAMP NOT NULL,
-        Month TIMESTAMP NOT NULL,
-        Offence_From_Date TIMESTAMP NOT NULL,
-        Offence_To_Date TIMESTAMP NOT NULL,
-        FIR_Reg_DateTime TIMESTAMP NOT NULL,
-        FIR_Date TIMESTAMP NOT NULL,
-        FIR_Type VARCHAR(50) NOT NULL,
-        FIR_Stage VARCHAR(50) NOT NULL,
-        Complaint_Mode VARCHAR(50) NOT NULL,
-        CrimeGroup_Name VARCHAR(50) NOT NULL,
-        CrimeHead_Name VARCHAR(50) NOT NULL,
-        Latitude DOUBLE PRECISION NOT NULL,
-        Longitude DOUBLE PRECISION NOT NULL,
-        ActSection VARCHAR(50) NOT NULL,
-        IOName VARCHAR(50) NOT NULL,
-        KGID INT NOT NULL,
-        IOAssigned_Date TIMESTAMP,
-        Internal_IO INT NOT NULL,
-        Place_of_Offence VARCHAR(50) NOT NULL,
-        Distance_from_PS VARCHAR(50) NOT NULL,
-        Beat_Name VARCHAR(50) NOT NULL,
-        Village_Area_Name VARCHAR(50) NOT NULL,
-        Male INT NOT NULL,
-        Female INT NOT NULL,
-        Boy INT NOT NULL,
-        Girl INT NOT NULL,
-        Age INT NOT NULL,
-        VICTIM_COUNT INT NOT NULL,
-        Accused_Count INT NOT NULL,
-        Arrested_Male INT NOT NULL,
-        Arrested_Female INT NOT NULL,
-        Arrested_Count_No INT NOT NULL,
-        Accused_ChargeSheeted_Count INT NOT NULL,
-        Conviction_Count INT NOT NULL,
-        FIR_ID VARCHAR(50) NOT NULL,
-        Unit_ID VARCHAR(50) NOT NULL,
-        Crime_No INT NOT NULL
-    )
-    ''')
+conn.execute('CREATE TABLE IF NOT EXISTS criminal (\
+ID VARCHAR(6) PRIMARY KEY NOT NULL UNIQUE,\
+NAME VARCHAR(20) NOT NULL, \
+PHONENUMBER  INT NOT NULL,\
+AGE INT NOT NULL,\
+GENDER CHAR(1) NOT NULL,\
+DOB TIMESTAMP ,\
+JAILED CHAR(1) NOT NULL,\
+IMAGE TEXT,\
+ADDRESS TEXT NOT NULL)')
 
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS public_urgency (
-        AADHAR INT NOT NULL,
-        TIME TIMESTAMP NOT NULL,
-        LATITUDE TEXT NOT NULL,
-        LONGITUDE TEXT NOT NULL
-    )
-    ''')
+conn.execute('CREATE TABLE IF NOT EXISTS complaints (\
+District_Name VARCHAR(50) NOT NULL,\
+UnitName VARCHAR(50) NOT NULL,\
+FIRNo INT NOT NULL,\
+RI	 INT NOT NULL,\
+Year TIMESTAMP NOT NULL,\
+Month TIMSTAMP NOT NULL,\
+Offence_From_Date TIMESTAMP NOT NULL,\
+Offence_To_Date	 TIMESTAMP NOT NULL,\
+FIR_Reg_DateTime TIMESTAMP NOT NULL,\
+FIR_Date	 TIMESTAMP NOT NULL,\
+FIR_Type VARCHAR(50) NOT NULL,\
+FIR_Stage VARCHAR(50) NOT NULL,\
+Complaint_Mode VARCHAR(50) NOT NULL,\
+CrimeGroup_Name	 VARCHAR(50) NOT NULL,\
+CrimeHead_Name	 VARCHAR(50) NOT NULL,\
+Latitude	 DOUBLE NOT NULL,\
+Longitude	 DOUBLE NOT NULL,\
+ActSection	 VARCHAR(50) NOT NULL,\
+IOName	 VARCHAR(50) NOT NULL,\
+KGID	 INT NOT NULL,\
+IOAssigned_Date	 TIMESTAMP,\
+Internal_IO	 INT NOT NULL,\
+Place_of_Offence	VARCHAR(50) NOT NULL,\
+Distance_from_PS	VARCHAR(50) NOT NULL,\
+Beat_Name	 VACHAR(50) NOT NULL,\
+Village_Area_Name	VARCHAR(50) NOT NULL,\
+Male	INT NOT NULL,\
+Female	INT NOT NULL,\
+Boy	INT NOT NULL,\
+Girl	INT NOT NULL,\
+Age 	INT NOT NULL,\
+VICTIM_COUNT	INT NOT NULL,\
+Accused_Count	INT NOT NULL,\
+Arrested_Male	INT NOT NULL,\
+Arrested_Female	INT NOT NULL,\
+Arrested_Count_No	INT NOT NULL,\
+Accused_ChargeSheeted_Count	INT NOT NULL,\
+Conviction_Count	INT NOT NULL,\
+FIR_ID	 VARCHAR(50) NOT NULL,\
+Unit_ID	 VARCHAR(50) NOT NULL,\
+Crime_No INT NOT NULL)')
 
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS public (
-        AADHAR INT PRIMARY KEY NOT NULL UNIQUE,
-        NAME VARCHAR(20) NOT NULL,
-        PHONENUMBER INT NOT NULL,
-        PASSWORD TEXT NOT NULL,
-        ADDRESS TEXT NOT NULL
-    )
-    ''')
-
-# Commit the changes and close the connection
-conn.commit()
 conn.close()
+
+conn=sqlite3.connect('PUBLIC.db')
+cursor=conn.cursor()
+cursor.execute('CREATE TABLE IF NOT EXISTS public (\
+AADHAR INT PRIMARY KEY NOT NULL UNIQUE,\
+NAME VARCHAR(20) NOT NULL, \
+PHONENUMBER  INT NOT NULL,\
+PASSWORD TEXT NOT NULL,\
+ADDRESS TEXT NOT NULL)')
+
+cursor.execute('CREATE TABLE IF NOT EXISTS public_urgency (\
+AADHAR INT NOT NULL,\
+TIME TIMESTAMP NOT NULL,\
+LATITUDE TEXT NOT NULL,\
+LONGITUDE TEXT NOT NULL)')
+conn.close()
+
+
 
 def seriesdatafun(data):
     inspector_months = {}
@@ -140,46 +124,49 @@ def seriesdatafun(data):
     
     return series_data
 
+
 def firdata(query):
-    conn = psycopg2.connect(DATABASE_URL)
-    cursor = conn.cursor()
+    conn=sqlite3.connect('POLICE_COMPLAINT.db')
+    cursor=conn.cursor()
     allowed_columns = {
-        "District_Name", "UnitName", "FIRNo", "RI", "Year", "Month", 
-        "Offence_From_Date", "Offence_To_Date", "FIR_Reg_DateTime", "FIR_Date", 
-        "FIR_Type", "FIR_Stage", "Complaint_Mode", "CrimeGroup_Name", 
-        "CrimeHead_Name", "Latitude", "Longitude", "ActSection", "IOName", 
-        "KGID", "IOAssigned_Date", "Internal_IO", "Place_of_Offence", 
-        "Distance_from_PS", "Beat_Name", "Village_Area_Name", "Male", 
-        "Female", "Boy", "Girl", "Age", "VICTIM_COUNT", "Accused_Count", 
-        "Arrested_Male", "Arrested_Female", "Arrested_Count_No", 
-        "Accused_ChargeSheeted_Count", "Conviction_Count", "FIR_ID", 
-        "Unit_ID", "Crime_No"
-    }
-    if query != 'all':
+    "District_Name", "UnitName", "FIRNo", "RI", "Year", "Month", 
+    "Offence_From_Date", "Offence_To_Date", "FIR_Reg_DateTime", "FIR_Date", 
+    "FIR_Type", "FIR_Stage", "Complaint_Mode", "CrimeGroup_Name", 
+    "CrimeHead_Name", "Latitude", "Longitude", "ActSection", "IOName", 
+    "KGID", "IOAssigned_Date", "Internal_IO", "Place_of_Offence", 
+    "Distance_from_PS", "Beat_Name", "Village_Area_Name", "Male", 
+    "Female", "Boy", "Girl", "Age", "VICTIM_COUNT", "Accused_Count", 
+    "Arrested_Male", "Arrested_Female", "Arrested_Count_No", 
+    "Accused_ChargeSheeted_Count", "Conviction_Count", "FIR_ID", 
+    "Unit_ID", "Crime_No"
+}
+    if query!='all':
+        # Parse the input to get the column name and keyword
         parts = query.strip().split(' ', 1)
         if len(parts) != 2:
             flash("Invalid input format. Please enter in 'column_name keyword' format.")
             return []
+        # When you use = for comparison, the keyword must exactly match the column value. Wildcards (%) should not be used with = because they are meant for pattern matching with the LIKE operator.
         column_name, keyword = parts
         column_name = column_name.strip()
         keyword = keyword.strip().lower()
+        # Validate the column name
         if column_name not in allowed_columns:
             flash(f"Invalid column name: {column_name}")
             return []
-        sql = f"SELECT * FROM complaints WHERE LOWER({column_name}) = %s"
+        # Construct the SQL query
+        sql = f"SELECT * FROM complaints WHERE LOWER({column_name}) = ?"
+        # Execute the query
         cursor.execute(sql, (keyword,))
     else:
         cursor.execute('SELECT * FROM complaints')
-    user = cursor.fetchall()
+    user=cursor.fetchall()
     conn.close()
     return user
 
 
-def allowed_file(filename):
-  allowed_extensions = {'jpg', 'gif', 'jpeg', 'png'}
-  return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
-
-def generate_csv(data, header):
+def generate_csv(data,header):
+    # Create CSV data
     csv_data = StringIO()
     datawriter = csv.writer(csv_data)
     datawriter.writerow(header)
@@ -189,51 +176,61 @@ def generate_csv(data, header):
 
 
 def getstaff(query):
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = sqlite3.connect('POLICE_RECORD.db')
     cursor = conn.cursor()
     allowed_columns = {'ID', 'NAME', 'PHONENUMBER', 'AGE', 'DOB', 'JOINING_DATE', 'BRANCH', 'DESIGNATION', 'GENDER', 'RETIRED_OR_SUSPENDED', 'ADDRESS','EMAIL'}
-    if query != 'all':
+    if query!='all':
         parts = query.strip().split(' ', 1)
         if len(parts) != 2:
             flash("Invalid input format. Please enter in 'column_name keyword' format.")
             return []
+        
         column_name, keyword = parts
+        # Validate the column name
         column_name = column_name.upper()
         if column_name not in allowed_columns:
             flash(f"Invalid column name: {column_name}")
             return []
-        sql = f"SELECT * FROM staff WHERE LOWER({column_name}) LIKE %s"
+        # Construct the SQL query
+        sql = f"SELECT * FROM staff WHERE LOWER({column_name}) LIKE ?"
+        # Use wildcards for partial matches
         like_keyword = f"%{keyword.strip().lower()}%"
+        # Execute the query
         cursor.execute(sql, (like_keyword,))
     else:
         cursor.execute('SELECT * FROM staff')
-    userdata = cursor.fetchall()
+    userdata=cursor.fetchall()
     conn.close()
     return userdata
 
 def getcriminal(query):
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = sqlite3.connect('POLICE_RECORD.db')
     cursor = conn.cursor()
     allowed_columns = {'ID', 'NAME', 'PHONENUMBER', 'AGE', 'DOB', 'GENDER','JAILED','ADDRESS'}
-    if query != 'all':
+    if query!='all':
         parts = query.strip().split(' ', 1)
         if len(parts) != 2:
             flash("Invalid input format. Please enter in 'column_name keyword' format.")
             return []
+        
         column_name, keyword = parts
+        # Validate the column name
         column_name = column_name.upper()
         if column_name not in allowed_columns:
             flash(f"Invalid column name: {column_name}")
             return []
-        sql = f"SELECT * FROM criminal WHERE LOWER({column_name}) LIKE %s"
+        # Construct the SQL query
+        sql = f"SELECT * FROM criminal WHERE LOWER({column_name}) LIKE ?"
+        # Use wildcards for partial matches
         like_keyword = f"%{keyword.strip().lower()}%"
+        # Execute the query
         cursor.execute(sql, (like_keyword,))
     else:
         cursor.execute('SELECT * FROM criminal')
-    userdata = cursor.fetchall()
+    userdata=cursor.fetchall()
     conn.close()
     return userdata
-
+    
 
 def find_rendzones(data):
     redzones = {}
@@ -286,62 +283,62 @@ def earthmap(data):
     return mapobj._repr_html_()
 
 
+
+
 app=Flask(__name__)
 
 app.secret_key = 'super-secret-key'
 app.config['UPLOAD_FOLDER'] = './api/uploads'
 
-
-@app.route('/public_emergency/<username>', methods=['GET', 'POST'])
+@app.route('/public_emergency/<username>',methods=['GET','POST'])
 def public_emergency(username):
     if 'user' in session:
-        if request.method == 'POST':
-            latitude = request.form.get('lt')
-            longitude = request.form.get('lg')
-            conn = psycopg2.connect(DATABASE_URL)
-            cursor = conn.cursor()
-            print(latitude, " ", longitude)
+        if request.method=='POST':
+            latitude=request.form.get('lt')
+            longitude=request.form.get('lg')
+            conn=sqlite3.connect('PUBLIC.db')
+            cursor=conn.cursor()
+            print(latitude," ",longitude)
             try:
-                cursor.execute('INSERT INTO public_urgency (AADHAR, TIME, LATITUDE, LONGITUDE) VALUES(%s, %s, %s, %s)', (username, datetime.datetime.now(), latitude, longitude))
+                cursor.execute('INSERT INTO public_urgency (AADHAR,TIME,LATITUDE,LONGITUDE) VALUES(?,?,?,?)',(username,datetime.datetime.now(),latitude,longitude))
                 conn.commit()
-            except psycopg2.Error as e:
-                print("Error:", e)
+            except:
                 conn.rollback()
             conn.close()
-        return render_template('public_emergency.html', username=username)
+        return render_template('public_emergency.html',username=username)
     return render_template('ksp.html')
 
 @app.route('/')
 def ksp():
     return render_template('ksp.html')
 
-@app.route('/public_login', methods=['GET', 'POST'])
+@app.route('/public_login',methods=['GET','POST'])
 def public_login():
     if 'user' not in session:
-        if request.method == 'POST':
-            conn = psycopg2.connect(DATABASE_URL)
-            cursor = conn.cursor()
-            aadhar = int(request.form.get('aadhar'))
-            password = request.form.get('password')
-            cursor.execute('SELECT * FROM public WHERE AADHAR=%s AND PASSWORD=%s', (aadhar, password))
-            public_data = cursor.fetchone()
+        if request.method=='POST':
+            conn=sqlite3.connect('PUBLIC.db')
+            cursor=conn.cursor()
+            aadhar=int(request.form.get('aadhar'))
+            password=request.form.get('password')
+            cursor.execute('SELECT * FROM public WHERE AADHAR=? AND PASSWORD=?',(aadhar,password))
+            public_data=cursor.fetchone()
             print(public_data)
             if public_data is not None:
-                session['user'] = public_data[0]
+                session['user']=public_data[0]
                 print('logged in')
-                return redirect(url_for('public_emergency', username=session['user'])) 
+                return redirect(url_for('public_emergency',username=session['user'])) 
             conn.close()
         return render_template('public_login.html')
     else:
-        return redirect(url_for('public_emergency', username=session['user']))
+        return redirect(url_for('public_emergency',username=session['user']))
 
-@app.route('/public_signup', methods=['GET', 'POST'])
+@app.route('/public_signup',methods=['GET','POST'])
 def public_signup():
-    if request.method == 'POST':
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
+    if request.method=='POST':
+        conn=sqlite3.connect('PUBLIC.db')
+        cursor=conn.cursor()
         try:
-            cursor.execute('INSERT INTO public (AADHAR, NAME, PHONENUMBER, PASSWORD, ADDRESS) VALUES (%s, %s, %s, %s, %s)',
+            cursor.execute('INSERT INTO public (AADHAR,NAME,PHONENUMBER,PASSWORD,ADDRESS) VALUES (?, ?, ?, ?, ?)',
                     (request.form.get("aadhar"), 
                         request.form.get("name"), 
                         request.form.get('Phone'), 
@@ -349,41 +346,41 @@ def public_signup():
                         request.form.get('address')))
             conn.commit()
             flash('account created')
-        except psycopg2.Error as e:
-            print("Error:", e)
+        except sqlite3.Error as e:
             conn.rollback()
             flash(f'account creation failed {e}')
         conn.close()
         return redirect(url_for('public_login'))
     return render_template('public_signup.html')
 
-@app.route('/stafflogin', methods=['GET', 'POST'])
+@app.route('/stafflogin',methods=['GET','POST'])
 def login():
     if 'user' not in session:
-        if request.method == 'POST':
+        if request.method=='POST':
             username = request.form.get('username')
             userpass = request.form.get('password')
-            conn = psycopg2.connect(DATABASE_URL)
+            conn = sqlite3.connect('POLICE_RECORD.db')
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM staff WHERE ID=%s AND PASSWORD=%s", (username, userpass))
-            data = cursor.fetchone()
+            cursor.execute("SELECT * FROM staff WHERE ID=? AND PASSWORD=?", (username, userpass))
+            data=cursor.fetchone()
             if data is not None:
-                session['user'] = username
+                session['user']=username
                 print('logged in')
                 print(data)
-                status = 'staff'
-                designation = data[10]
-                workingcondition = data[11]
-                session['status'] = status
-                session['designation'] = designation
-                session['workingcondition'] = workingcondition
+                status='staff'
+                designation=data[10]
+                workingcondition=data[11]
+                session['status']=status
+                session['designation']=designation
+                session['workingcondition']=workingcondition
                 print(session)
-                return redirect(url_for('home', username=username)) 
+                return redirect(url_for('home',username=username)) 
             conn.close()
             return redirect(url_for('login'))
         return render_template('login.html')
     else:
-        return redirect(url_for('home', username=session['user']))
+        return redirect(url_for('home',username=session['user']))
+
 
 @app.route('/home/<username>')
 def home(username):
@@ -392,93 +389,92 @@ def home(username):
         designation = session['designation']
         workingcondition = session['workingcondition']
     except:
-        status, designation, workingcondition = None, None, None
+        status,designation,workingcondition=None,None,None
     print(status)
-    if 'user' in session and status == 'staff':
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM staff WHERE ID=%s', (username,))
-        data = cursor.fetchone()
+    if 'user' in session and status=='staff':
+        conn=sqlite3.connect('POLICE_RECORD.db')
+        cursor=conn.cursor()
+        cursor.execute('SELECT * FROM staff WHERE ID =?',(username,))
+        data=cursor.fetchone()
         conn.close()
-        return render_template('home.html', username=username, data=data)
+        return render_template('home.html',username=username,data=data)
     else:
         return render_template('login.html')
 
-@app.route('/staff/<username>', methods=['GET', 'POST'])
+@app.route('/staff/<username>',methods=['GET','POST'])
 def staff(username):
     try:
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
     except:
-        status, designation, workingcondition = None, None, None
-    if 'user' in session and status == 'staff':
-
-        gender = ['M', 'F', 'O']
-        retired_status = ['wor', 'ret', 'sus']
-        if request.method == 'POST':
-            query = request.form.get('query')
-            data = getstaff(query)
-            datawl = [list(i[:2] + i[3:]) for i in data]
+        status,designation,workingcondition=None,None,None
+    if 'user' in session and status=='staff':
+        
+        gender=['M','F','O']
+        retiredtatus=['wor','ret','sus']
+        if request.method=='POST':
+            query=request.form.get('query')
+            data=getstaff(query)
+            datawl=[list(i[:2]+i[3:]) for i in data]
             for i in datawl:
-                i[11] = f"http://{request.host}/uploads/{i[11]}"
-            csv_data = generate_csv(datawl, ['ID', 'NAME', 'EMAIL', 'PHONENUMBER', 'AGE', 'GENDER', 'DOB', 'JOINING_DATE', 'BRANCH', 'DESIGNATION', 'RETIRED_OR_SUSPENDED', 'IMAGE', 'ADDRESS'])
-            return render_template('staff.html', data=data, username=username, gender=gender, retired_status=retired_status, csv_data=csv_data)
+                i[11]='http://127.0.0.1:5000/uploads/'+i[11]
+            csv_data = generate_csv(datawl,['ID','NAME','EMAIL','PHONENUMBER','AGE','GENDER','DOB','JOINING_DATE','BRANCH','DESIGNATION','RETIRED_OR_SUSPENDED','IMAGE','ADDRESS'])
+            return render_template('staff.html',data=data,username=username,gender=gender,retiredstatus=retiredtatus,csv_data=csv_data)
         else:
-            data = getstaff('all')
+            data=getstaff('all')
             print(data)
-            datawl = [list(i[:2] + i[3:]) for i in data]
+            datawl=[list(i[:2]+i[3:]) for i in data]
             for i in datawl:
-                i[11] = f"http://{request.host}/uploads/{i[11]}"
-            csv_data = generate_csv(datawl, ['ID', 'NAME', 'EMAIL', 'PHONENUMBER', 'AGE', 'GENDER', 'DOB', 'JOINING_DATE', 'BRANCH', 'DESIGNATION', 'RETIRED_OR_SUSPENDED', 'IMAGE', 'ADDRESS'])
-            return render_template('staff.html', data=data, username=username, gender=gender, retired_status=retired_status, csv_data=csv_data)
+                i[11]='http://127.0.0.1:5000/uploads/'+i[11]
+            csv_data = generate_csv(datawl,['ID','NAME','EMAIL','PHONENUMBER','AGE','GENDER','DOB','JOINING_DATE','BRANCH','DESIGNATION','RETIRED_OR_SUSPENDED','IMAGE','ADDRESS'])
+            return render_template('staff.html',data=data,username=username,gender=gender,retiredstatus=retiredtatus,csv_data=csv_data)
     else:
         return render_template('login.html')
 
-
-@app.route('/criminal/<username>', methods=['GET', 'POST'])
+@app.route('/criminal/<username>',methods=['GET','POST'])
 def criminal(username):
     try:
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
     except:
-        status, designation, workingcondition = None, None, None
-    if 'user' in session and status == 'staff':
-        jailed = ['Y', 'N']
-        gender = ['M', 'F', 'O']
-        if request.method == 'POST':
-            query = request.form.get('query')
-            data = getcriminal(query)
-            datawl = []
+        status,designation,workingcondition=None,None,None
+    if 'user' in session and status=='staff':
+        jailed=['Y','N']
+        gender=['M','F','O']
+        if request.method=='POST':
+            query=request.form.get('query')
+            data=getcriminal(query)
+            datawl=[]
             for i in data:
                 datawl.append(list(i))
             for i in datawl:
-                i[7] = f"http://{request.host}/uploads/{i[7]}"
-            csv_data = generate_csv(datawl, ['ID', 'NAME', 'PHONENUMBER', 'AGE', 'GENDER', 'DOB', 'JAILED', 'IMAGE', 'ADDRESS'])
-
-            return render_template('criminal.html', data=data, username=username, jailed=jailed, gender=gender, csv_data=csv_data)
+                i[7]='http://127.0.0.1:5000/uploads/'+i[7]
+            csv_data = generate_csv(datawl,['ID', 'NAME', 'PHONENUMBER', 'AGE', 'GENDER', 'DOB', 'JAILED', 'IMAGE', 'ADDRESS'])
+            
+            return render_template('criminal.html',data=data,username=username,jailed=jailed,gender=gender,csv_data=csv_data)
         else:
-            data = getcriminal('all')
+            data=getcriminal('all')
             print(data)
-            datawl = []
+            datawl=[]
             for i in data:
                 print(i)
                 datawl.append(list(i))
             for i in datawl:
-                i[7] = f"http://{request.host}/uploads/{i[7]}"
-            csv_data = generate_csv(datawl, ['ID', 'NAME', 'PHONENUMBER', 'AGE', 'GENDER', 'DOB', 'JAILED', 'IMAGE', 'ADDRESS'])
-
-            return render_template('criminal.html', data=data, username=username, jailed=jailed, gender=gender, csv_data=csv_data)
+                i[7]='http://127.0.0.1:5000/uploads/'+i[7]
+            csv_data = generate_csv(datawl,['ID', 'NAME', 'PHONENUMBER', 'AGE', 'GENDER', 'DOB', 'JAILED', 'IMAGE', 'ADDRESS'])
+                
+            return render_template('criminal.html',data=data,username=username,jailed=jailed,gender=gender,csv_data=csv_data)
     else:
         return render_template('login.html')
-
 
 # to send the folder details of uploaded image
 @app.route('/uploads/<filename>')
 def serve_uploaded_image(filename):
     uploads_folder = os.path.join(app.root_path, 'uploads')
     return send_from_directory(uploads_folder, filename)
+
 
 
 @app.route('/download_csv/<username>', methods=['POST'])
@@ -493,19 +489,21 @@ def download_csv(username):
         return "No CSV data provided."
 
 
-@app.route('/add_staff/<username>', methods=['GET', 'POST'])
+
+
+@app.route('/add_staff/<username>',methods=['GET','POST'])
 def add_staff(username):
     try:
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
     except:
-        status, designation, workingcondition = None, None, None
+        status,designation,workingcondition=None,None,None
 
-    if 'user' in session and status == 'staff':
-        if request.method == 'POST':
-            conn = psycopg2.connect(DATABASE_URL)
-            cursor = conn.cursor()
+    if 'user' in session and status=='staff':
+        if request.method=='POST':
+            conn = sqlite3.connect('POLICE_RECORD.db')
+            cursor=conn.cursor()
             try:
                 image = request.files['image']
                 # Validate the uploaded image
@@ -513,33 +511,33 @@ def add_staff(username):
                     flash('Invalid file format. Only JPG GIF png jpeg files are allowed.')
                 elif image:
                     filename = secure_filename(image.filename)
-                    filename, extension = os.path.splitext(filename)
-                    filename = f"{str(time.time()).replace('.', '_')}{extension}"
+                    filename,extension=os.path.splitext(filename)
+                    filename=f"{str(time.time()).replace('.','_')}{extension}"
                     image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     image.save(image_path)
-                    cursor.execute("INSERT INTO staff (ID, NAME, PASSWORD, EMAIL, PHONENUMBER, AGE, GENDER, DOB, JOINING_DATE, BRANCH, DESIGNATION, RETIRED_OR_SUSPENDED, IMAGE, ADDRESS) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                   (request.form.get("staff_id"),
-                                    request.form.get("staff_name"),
-                                    request.form.get("pw"),
-                                    request.form.get("email"),
-                                    request.form.get('phone'),
-                                    request.form.get('age'),
-                                    request.form.get('gen'),
-                                    request.form.get('dob'),
-                                    request.form.get('jd'),
-                                    request.form.get('branch').lower(),
-                                    request.form.get('desig').lower(),
-                                    request.form.get('sec'),
-                                    filename,
-                                    request.form.get('add').lower()))
+                    cursor.execute("INSERT INTO staff (ID,NAME,PASSWORD,EMAIL,PHONENUMBER,AGE,GENDER,DOB,JOINING_DATE,BRANCH,DESIGNATION,RETIRED_OR_SUSPENDED,IMAGE,ADDRESS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (request.form.get("staff_id"), 
+                        request.form.get("staff_name"), 
+                        request.form.get("pw"), 
+                        request.form.get("email"), 
+                        request.form.get('phone'), 
+                        request.form.get('age'), 
+                        request.form.get('gen'),
+                        request.form.get('dob'),
+                        request.form.get('jd'),
+                        request.form.get('branch').lower(),
+                        request.form.get('desig').lower(),
+                        request.form.get('sec'),
+                        filename,
+                        request.form.get('add').lower()))
                     conn.commit()
                     flash('added and published')
             except FileNotFoundError as e:
                 print(f"File not found error: {e}")
                 conn.rollback()
                 flash('failed')
-            except psycopg2.Error as e:
-                print(f"PostgreSQL error: {e}")
+            except sqlite3.Error as e:
+                print(f"SQLite error: {e}")
                 conn.rollback()
                 flash('failed')
             except Exception as e:
@@ -547,27 +545,32 @@ def add_staff(username):
                 conn.rollback()
                 flash('failed')
             conn.close()
-            return redirect(url_for('staff', username=username))
-        if designation == 'technical' and workingcondition == 'wor':
-            return render_template('add_staff.html', username=username)
+            return redirect(url_for('staff',username=username))
+        if designation=='technical' and workingcondition=='wor':
+            return render_template('add_staff.html',username=username)
         else:
-            return render_template('notallowed.html', username=username)
+            return render_template('notallowed.html',username=username)
     else:
         return render_template('login.html')
 
+def allowed_file(filename):
+  allowed_extensions = {'jpg', 'gif', 'jpeg', 'png'}
+  return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
-@app.route('/add_criminal/<username>', methods=['GET', 'POST'])
+
+
+@app.route('/add_criminal/<username>',methods=['GET','POST'])
 def add_criminal(username):
     try:
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
     except:
-        status, designation, workingcondition = None, None, None
-    if 'user' in session and status == 'staff':
-        if request.method == 'POST':
-            conn = psycopg2.connect(DATABASE_URL)
-            cursor = conn.cursor()
+        status,designation,workingcondition=None,None,None
+    if 'user' in session and status=='staff':
+        if request.method=='POST':
+            conn = sqlite3.connect('POLICE_RECORD.db')
+            cursor=conn.cursor()
             try:
                 image = request.files['image']
                 # Validate the uploaded image
@@ -575,28 +578,28 @@ def add_criminal(username):
                     flash('Invalid file format. Only JPG GIF png jpeg files are allowed.')
                 elif image:
                     filename = secure_filename(image.filename)
-                    filename, extension = os.path.splitext(filename)
-                    filename = f"{str(time.time()).replace('.', '_')}{extension}"
+                    filename,extension=os.path.splitext(filename)
+                    filename=f"{str(time.time()).replace('.','_')}{extension}"
                     image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     image.save(image_path)
-                    cursor.execute("INSERT INTO criminal (ID, NAME, PHONENUMBER, AGE, GENDER, DOB, JAILED, IMAGE, ADDRESS) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                   (request.form.get("criminal_id"),
-                                    request.form.get("criminal_name"),
-                                    request.form.get('phone'),
-                                    request.form.get('age'),
-                                    request.form.get('gen'),
-                                    request.form.get('dob'),
-                                    request.form.get('jailed'),
-                                    filename,
-                                    request.form.get('add').lower()))
+                    cursor.execute("INSERT INTO criminal (ID,NAME,PHONENUMBER,AGE,GENDER,DOB,JAILED,IMAGE,ADDRESS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (request.form.get("criminal_id"), 
+                        request.form.get("criminal_name"), 
+                        request.form.get('phone'), 
+                        request.form.get('age'), 
+                        request.form.get('gen'),
+                        request.form.get('dob'),
+                        request.form.get('jailed'),
+                        filename,
+                        request.form.get('add').lower()))
                     conn.commit()
                     flash('added and published')
             except FileNotFoundError as e:
                 print(f"File not found error: {e}")
                 conn.rollback()
                 flash('failed')
-            except psycopg2.Error as e:
-                print(f"PostgreSQL error: {e}")
+            except sqlite3.Error as e:
+                print(f"SQLite error: {e}")
                 conn.rollback()
                 flash('failed')
             except Exception as e:
@@ -604,130 +607,129 @@ def add_criminal(username):
                 conn.rollback()
                 flash('failed')
             conn.close()
-            return redirect(url_for('criminal', username=username))
-        if designation == 'technical' and workingcondition == 'wor':
-            return render_template('add_criminal.html', username=username)
+            return redirect(url_for('criminal',username=username))
+        if designation=='technical' and workingcondition=='wor':
+            return render_template('add_criminal.html',username=username)
         else:
-            return render_template('notallowed.html', username=username)
+            return render_template('notallowed.html',username=username)
     else:
         return render_template('login.html')
 
-@app.route('/file_complaint/<username>', methods=['GET', 'POST'])
+
+
+
+@app.route('/file_complaint/<username>',methods=['GET','POST'])
 def file_complaint(username):
     try:
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
     except:
-        status, designation, workingcondition = None, None, None
-
-    if 'user' in session and status == 'staff':
-        if request.method == 'POST':
-            conn = psycopg2.connect(DATABASE_URL)
-            cursor = conn.cursor()
+        status,designation,workingcondition=None,None,None
+    if 'user' in session and status=='staff':
+        if request.method=='POST':
+            conn=sqlite3.connect('POLICE_RECORD.db')
+            cursor=conn.cursor()
             try:
-                cursor.execute("INSERT INTO complaints (District_Name,UnitName,FIRNo,RI,Year,Month,Offence_From_Date,Offence_To_Date,FIR_Reg_DateTime,FIR_Date,FIR_Type,FIR_Stage,Complaint_Mode,CrimeGroup_Name,CrimeHead_Name,Latitude,Longitude,ActSection,IOName,KGID,IOAssigned_Date,Internal_IO,Place_of_Offence,Distance_from_PS,Beat_Name,Village_Area_Name,Male,Female,Boy,Girl,Age,VICTIM_COUNT,Accused_Count,Arrested_Male,Arrested_Female,Arrested_Count_No,Accused_ChargeSheeted_Count,Conviction_Count,FIR_ID,Unit_ID,Crime_No) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                               (request.form.get('district_name'),
-                                request.form.get('unit_name'),
-                                request.form.get('fir_no'),
-                                request.form.get('ri'),
-                                request.form.get('year'),
-                                request.form.get('month'),
-                                request.form.get('offence_from_date'),
-                                request.form.get('offence_to_date'),
-                                request.form.get('fir_reg_datetime'),
-                                request.form.get('fir_date'),
-                                request.form.get('fir_type'),
-                                request.form.get('fir_stage'),
-                                request.form.get('complaint_mode'),
-                                request.form.get('crimegroup_name'),
-                                request.form.get('crimehead_name'),
-                                request.form.get('latitude'),
-                                request.form.get('longitude'),
-                                request.form.get('act_section'),
-                                request.form.get('io_name'),
-                                request.form.get('kgid'),
-                                request.form.get('ioassigned_date'),
-                                request.form.get('internal_io'),
-                                request.form.get('place_of_offence'),
-                                request.form.get('distance_from_ps'),
-                                request.form.get('beat_name'),
-                                request.form.get('village_area_name'),
-                                request.form.get('male'),
-                                request.form.get('female'),
-                                request.form.get('boy'),
-                                request.form.get('girl'),
-                                request.form.get('age'),
-                                request.form.get('victim_count'),
-                                request.form.get('accused_count'),
-                                request.form.get('arrested_male'),
-                                request.form.get('arrested_female'),
-                                request.form.get('arrested_count_no'),
-                                request.form.get('accused_chargesheeted_count'),
-                                request.form.get('conviction_count'),
-                                request.form.get('fir_id'),
-                                request.form.get('unit_id'),
-                                request.form.get('crime_no')))
+                cursor.execute('INSERT INTO complaints (District_Name,UnitName,FIRNo,RI,Year,Month,Offence_From_Date,Offence_To_Date,FIR_Reg_DateTime,FIR_Date,FIR_Type,FIR_Stage,Complaint_Mode,CrimeGroup_Name,CrimeHead_Name,Latitude,Longitude,ActSection,IOName,KGID,IOAssigned_Date,Internal_IO	,Place_of_Offence,Distance_from_PS,Beat_Name,Village_Area_Name,Male,Female,Boy,Girl,Age,VICTIM_COUNT,Accused_Count,Arrested_Male,Arrested_Female,Arrested_Count_No,Accused_ChargeSheeted_Count,Conviction_Count,FIR_ID,Unit_ID,Crime_No) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(
+                request.form.get('district_name'),
+                request.form.get('unit_name'),
+                request.form.get('fir_no'),
+                request.form.get('ri'),
+                request.form.get('year'),
+                request.form.get('month'),
+                request.form.get('offence_from_date'),
+                request.form.get('offence_to_date'),
+                request.form.get('fir_reg_datetime'),
+                request.form.get('fir_date'),
+                request.form.get('fir_type'),
+                request.form.get('fir_stage'),
+                request.form.get('complaint_mode'),
+                request.form.get('crimegroup_name'),
+                request.form.get('crimehead_name'),
+                request.form.get('latitude'),
+                request.form.get('longitude'),
+                request.form.get('act_section'),
+                request.form.get('io_name'),
+                request.form.get('kgid'),
+                request.form.get('ioassigned_date'),
+                request.form.get('internal_io'),
+                request.form.get('place_of_offence'),
+                request.form.get('distance_from_ps'),
+                request.form.get('beat_name'),
+                request.form.get('village_area_name'),
+                request.form.get('male'),
+                request.form.get('female'),
+                request.form.get('boy'),
+                request.form.get('girl'),
+                request.form.get('age'),
+                request.form.get('victim_count'),
+                request.form.get('accused_count'),
+                request.form.get('arrested_male'),
+                request.form.get('arrested_female'),
+                request.form.get('arrested_count_no'),
+                request.form.get('accused_chargesheeted_count'),
+                request.form.get('conviction_count'),
+                request.form.get('fir_id'),
+                request.form.get('unit_id'),
+                request.form.get('crime_no')))
                 conn.commit()
-                flash('FIR added and published')
-            except psycopg2.Error as e:
-                print(f"PostgreSQL error: {e}")
-                conn.rollback()
-                flash('Failed to add FIR')
-            finally:
-                conn.close()
-            return redirect(url_for('analytical_dashboard', username=username))
-        if designation == 'hawaldar' and workingcondition == 'wor':
-            return render_template('file_complaint.html', username=username)
+                flash('fir added and published')
+            except:
+                flash('failed')
+                conn.rollback
+            conn.close()
+            return redirect(url_for('analytical_dashboard',username=username))
+        if designation=='hawaldar' and workingcondition=='wor':
+            return render_template('file_complaint.html',username=username)
         else:
-            return render_template('notallowed.html', username=username)
+            return render_template('notallowed.html',username=username)
     else:
         return render_template('login.html')
 
-@app.route('/analytical_dashboard/<username>', methods=['GET', 'POST'])
+@app.route('/analytical_dashboard/<username>',methods=['GET','POST'])
 def analytical_dashboard(username):
     try:
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
-    except KeyError:
-        status, designation, workingcondition = None, None, None
-
-    if 'user' in session and status == 'staff':
-        if request.method == 'POST':
-            query = request.form.get('query')
-            data = firdata(query)
-            districts = find_police(data)
-            district = list(districts.keys())
-            district_mod = list(districts.values())
-
-            redzones = find_rendzones(data)
-            htmlmap = earthmap(data)
+    except:
+        status,designation,workingcondition=None,None,None
+    if 'user' in session and status=='staff':
+        
+        if request.method=='POST':
+            query=request.form.get('query')
+            data=firdata(query)
+            districts=find_police(data)
+            district=list(districts.keys())
+            district_mod=list(districts.values())
+            
+            redzones=find_rendzones(data)
+            htmlmap=earthmap(data)
             print(redzones)
             # redzones={'a':[213, 37, 0, 0, 0, 8, 0, 45, 0, 0, 0, 0],'b':[21, 7, 0, 10, 0, 50, 0, 0, 0, 0, 0, 5],'c':[13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4,45],'d':[83, 37, 0, 90, 0, 8, 0, 45, 0, 0, 0, 0],'e':[21, 7, 0, 10, 50, 50, 0, 90, 0, 0, 0, 5],'f':[3, 3, 0, 0, 90, 0, 0, 10, 0, 0, 4,45]}
 
-            seriesdata = seriesdatafun(data)
+            seriesdata=seriesdatafun(data)
             print(seriesdata)
-            csv_data = generate_csv(data, ['District_Name', 'UnitName', 'FIRNo', 'RI', 'Year', 'Month', 'Offence_From_Date', 'Offence_To_Date', 'FIR_Reg_DateTime', 'FIR_Date', 'FIR_Type', 'FIR_Stage', 'Complaint_Mode', 'CrimeGroup_Name', 'CrimeHead_Name', 'Latitude', 'Longitude', 'ActSection', 'IOName', 'KGID', 'IOAssigned_Date', 'Internal_IO', 'Place_of_Offence', 'Distance_from_PS', 'Beat_Name', 'Village_Area_Name', 'Male', 'Female', 'Boy', 'Girl', 'Age', 'VICTIM_COUNT', 'Accused_Count', 'Arrested_Male', 'Arrested_Female', 'Arrested_Count_No', 'Accused_ChargeSheeted_Count', 'Conviction_Count', 'FIR_ID', 'Unit_ID', 'Crime_No'])
-            return render_template('analytical_dashboard.html', data=data, series_data=seriesdata, htmlmap=htmlmap, datalength=len(data), redzones=redzones, username=username)
+            csv_data = generate_csv(data,['District_Name', 'UnitName', 'FIRNo', 'RI', 'Year', 'Month', 'Offence_From_Date', 'Offence_To_Date', 'FIR_Reg_DateTime', 'FIR_Date', 'FIR_Type', 'FIR_Stage', 'Complaint_Mode', 'CrimeGroup_Name', 'CrimeHead_Name', 'Latitude', 'Longitude', 'ActSection', 'IOName', 'KGID', 'IOAssigned_Date', 'Internal_IO', 'Place_of_Offence', 'Distance_from_PS', 'Beat_Name', 'Village_Area_Name', 'Male', 'Female', 'Boy', 'Girl', 'Age', 'VICTIM_COUNT', 'Accused_Count', 'Arrested_Male', 'Arrested_Female', 'Arrested_Count_No', 'Accused_ChargeSheeted_Count', 'Conviction_Count', 'FIR_ID', 'Unit_ID', 'Crime_No'])
+            return render_template('analytical_dashboard.html',data=data,series_data=seriesdata,htmlmap=htmlmap,datalength=len(data),redzones=redzones,username=username)
         else:
-            data = firdata('all')
-            districts = find_police(data)
-            district = list(districts.keys())
-            district_mod = list(districts.values())
-
-            redzones = find_rendzones(data)
-            htmlmap = earthmap(data)
+            data=firdata('all')
+            districts=find_police(data)
+            district=list(districts.keys())
+            district_mod=list(districts.values())
+            
+            redzones=find_rendzones(data)
+            htmlmap=earthmap(data)
             print(redzones)
-            csv_data = generate_csv(data, ['District_Name', 'UnitName', 'FIRNo', 'RI', 'Year', 'Month', 'Offence_From_Date', 'Offence_To_Date', 'FIR_Reg_DateTime', 'FIR_Date', 'FIR_Type', 'FIR_Stage', 'Complaint_Mode', 'CrimeGroup_Name', 'CrimeHead_Name', 'Latitude', 'Longitude', 'ActSection', 'IOName', 'KGID', 'IOAssigned_Date', 'Internal_IO', 'Place_of_Offence', 'Distance_from_PS', 'Beat_Name', 'Village_Area_Name', 'Male', 'Female', 'Boy', 'Girl', 'Age', 'VICTIM_COUNT', 'Accused_Count', 'Arrested_Male', 'Arrested_Female', 'Arrested_Count_No', 'Accused_ChargeSheeted_Count', 'Conviction_Count', 'FIR_ID', 'Unit_ID', 'Crime_No'])
+            csv_data = generate_csv(data,['District_Name', 'UnitName', 'FIRNo', 'RI', 'Year', 'Month', 'Offence_From_Date', 'Offence_To_Date', 'FIR_Reg_DateTime', 'FIR_Date', 'FIR_Type', 'FIR_Stage', 'Complaint_Mode', 'CrimeGroup_Name', 'CrimeHead_Name', 'Latitude', 'Longitude', 'ActSection', 'IOName', 'KGID', 'IOAssigned_Date', 'Internal_IO', 'Place_of_Offence', 'Distance_from_PS', 'Beat_Name', 'Village_Area_Name', 'Male', 'Female', 'Boy', 'Girl', 'Age', 'VICTIM_COUNT', 'Accused_Count', 'Arrested_Male', 'Arrested_Female', 'Arrested_Count_No', 'Accused_ChargeSheeted_Count', 'Conviction_Count', 'FIR_ID', 'Unit_ID', 'Crime_No'])
             # redzones={'a':[213, 37, 0, 0, 0, 8, 0, 45, 0, 0, 0, 0],'b':[21, 7, 0, 10, 0, 50, 0, 0, 0, 0, 0, 5],'c':[13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4,45],'d':[83, 37, 0, 90, 0, 8, 0, 45, 0, 0, 0, 0],'e':[21, 7, 0, 10, 50, 50, 0, 90, 0, 0, 0, 5],'f':[3, 3, 0, 0, 90, 0, 0, 10, 0, 0, 4,45]}
-
-            seriesdata = seriesdatafun(data)
-            print(seriesdata)
-            return render_template('analytical_dashboard.html', data=data, series_data=seriesdata, htmlmap=htmlmap, datalength=len(data), redzones=redzones, username=username)
+             
+            seriesdata=seriesdatafun(data)
+            print(seriesdata)        
+            return render_template('analytical_dashboard.html',data=data,series_data=seriesdata,htmlmap=htmlmap,datalength=len(data),redzones=redzones,username=username)
     else:
         return render_template('login.html')
-
 
 
 @app.route('/navigation_details/<username>')
@@ -736,17 +738,16 @@ def navigation_details(username):
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
-    except KeyError:
-        status, designation, workingcondition = None, None, None
-
-    if 'user' in session and status == 'staff':
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
+    except:
+        status,designation,workingcondition=None,None,None
+    if 'user' in session and status=='staff':
+        conn=sqlite3.connect('PUBLIC.db')
+        cursor=conn.cursor()
         cursor.execute('SELECT * FROM public_urgency')
-        data = cursor.fetchall()
-        data = data[::-1]
+        data=cursor.fetchall()
+        data=data[::-1]
         conn.close()
-        return render_template('navigation.html', data=data, username=username)
+        return render_template('navigation.html',data=data,username=username)
     else:
         return render_template('login.html')
 
@@ -756,126 +757,116 @@ def logout():
     session.pop('user')
     return redirect('/stafflogin')
 
-@app.route('/updatestaff/<username>/<staffid>', methods=['GET', 'POST'])
-def staffupdate(username, staffid):
+@app.route("/updatestaff/<username>/<staffid>",methods=['GET','POST'])
+def staffupdate(username,staffid):
     try:
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
     except:
-        status, designation, workingcondition = None, None, None
-
-    if 'user' in session and status == 'staff':
-        if designation == 'technical' and workingcondition == 'wor':
-            conn = psycopg2.connect(DATABASE_URL)
-            cursor = conn.cursor()
+        status,designation,workingcondition=None,None,None
+    if 'user' in session and status=='staff':
+        if designation=='technical' and workingcondition=='wor':
+            conn = sqlite3.connect('POLICE_RECORD.db')
+            cursor=conn.cursor()
             try:
-                if request.method == 'POST':
-                    image = request.files['image']
-                    if image.filename != "":
+                if request.method=='POST':
+                    image=request.files['image']
+                    if image.filename!="":
                         if not allowed_file(image.filename):
-                            flash('Invalid file format. Only JPG, GIF, PNG, and JPEG files are allowed.')
-                        else:
+                            flash('Invalid file format. Only JPG GIF png jpeg files are allowed.')
+                        elif image:
                             filename = secure_filename(image.filename)
                             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                             image.save(image_path)
-                            cursor.execute('''UPDATE staff SET NAME=%s,EMAIL=%s,PHONENUMBER=%s,GENDER=%s,DOB=%s,BRANCH=%s,DESIGNATION=%s,RETIRED_OR_SUSPENDED=%s,IMAGE=%s,ADDRESS=%s WHERE ID=%s''',
+                            cursor.execute('''UPDATE staff SET NAME=?,EMAIL=?,PHONENUMBER=?,GENDER=?,DOB=?,BRANCH=?,DESIGNATION=?,RETIRED_OR_SUSPENDED=?,IMAGE=?,ADDRESS=? WHERE ID=?''',
                                            (request.form.get("staff_name"),
-                                            request.form.get("email"),
-                                            request.form.get('phone'),
+                                            request.form.get("email"), 
+                                            request.form.get('phone'),  
                                             request.form.get('gen'),
                                             request.form.get('dob'),
                                             request.form.get('branch').lower(),
                                             request.form.get('desig').lower(),
                                             request.form.get('sec'),
                                             filename,
-                                            request.form.get('add').lower(),
-                                            staffid))
+                                            request.form.get('add').lower(),staffid)) 
                             conn.commit()
-                            flash(f'Updated with image {staffid}')
+                            flash(f'updated with image{staffid}')
                     else:
-                        cursor.execute('''UPDATE staff SET NAME=%s,EMAIL=%s,PHONENUMBER=%s,GENDER=%s,DOB=%s,BRANCH=%s,DESIGNATION=%s,RETIRED_OR_SUSPENDED=%s,ADDRESS=%s WHERE ID=%s''',
-                                       (request.form.get("staff_name"),
-                                        request.form.get("email"),
-                                        request.form.get('phone'),
-                                        request.form.get('gen'),
-                                        request.form.get('dob'),
-                                        request.form.get('branch').lower(),
-                                        request.form.get('desig').lower(),
-                                        request.form.get('sec'),
-                                        request.form.get('add').lower(),
-                                        staffid))
+                        cursor.execute('''UPDATE staff SET NAME=?,EMAIL=?,PHONENUMBER=?,GENDER=?,DOB=?,BRANCH=?,DESIGNATION=?,RETIRED_OR_SUSPENDED=?,ADDRESS=? WHERE ID=?''',
+                                           (request.form.get("staff_name"),
+                                            request.form.get("email"), 
+                                            request.form.get('phone'),  
+                                            request.form.get('gen'),
+                                            request.form.get('dob'),
+                                            request.form.get('branch').lower(),
+                                            request.form.get('desig').lower(),
+                                            request.form.get('sec'),
+                                            request.form.get('add').lower(),staffid))
                         conn.commit()
-                        flash(f'Updated without image {staffid}')
-            except psycopg2.Error as e:
-                print(f"PostgreSQL error: {e}")
+                        flash(f'updated without image{staffid}')
+            except:
                 conn.rollback()
-                flash('Update failed')
-            finally:
-                conn.close()
-            return redirect(url_for('staff', username=username))
+                flash('not updated --failed')
+            conn.close()
+            return redirect(url_for('staff',username=username))
         else:
-            return render_template('notallowed.html', username=username)
+            return render_template('notallowed.html',username=username)
     else:
         return render_template('login.html')
 
 
-@app.route("/updatecriminal/<username>/<criminalid>", methods=['GET', 'POST'])
-def criminalupdate(username, criminalid):
+@app.route("/updatecriminal/<username>/<criminalid>",methods=['GET','POST'])
+def criminalupdate(username,criminalid):
     try:
         status = session['status']
         designation = session['designation']
         workingcondition = session['workingcondition']
     except:
-        status, designation, workingcondition = None, None, None
-
-    if 'user' in session and status == 'staff':
-        if designation == 'technical' and workingcondition == 'wor':
-            conn = psycopg2.connect(DATABASE_URL)
-            cursor = conn.cursor()
+        status,designation,workingcondition=None,None,None
+    if 'user' in session and status=='staff':
+        if designation=='technical' and workingcondition=='wor':
+            conn = sqlite3.connect('POLICE_RECORD.db')
+            cursor=conn.cursor()
             try:
-                if request.method == 'POST':
-                    image = request.files['image']
-                    if image.filename != "":
+                if request.method=='POST':
+                    image=request.files['image']
+                    if image.filename!="":
                         if not allowed_file(image.filename):
-                            flash('Invalid file format. Only JPG, GIF, PNG, and JPEG files are allowed.')
-                        else:
+                            flash('Invalid file format. Only JPG GIF png jpeg files are allowed.')
+                        elif image:
                             filename = secure_filename(image.filename)
                             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                             image.save(image_path)
-                            cursor.execute('''UPDATE criminal SET NAME=%s,PHONENUMBER=%s,AGE=%s,GENDER=%s,DOB=%s,JAILED=%s,IMAGE=%s,ADDRESS=%s WHERE ID=%s''',
-                                           (request.form.get("criminal_name"),
-                                            request.form.get('phone'),
-                                            request.form.get('age'),
+                            cursor.execute('''UPDATE criminal SET NAME=?,PHONENUMBER=?,AGE=?,GENDER=?,DOB=?,JAILED=?,IMAGE=?,ADDRESS=? WHERE ID=?''',
+                                           (request.form.get("criminal_name"), 
+                                            request.form.get('phone'), 
+                                            request.form.get('age'), 
                                             request.form.get('gen'),
                                             request.form.get('dob'),
                                             request.form.get('jailed'),
                                             filename,
-                                            request.form.get('add').lower(),
-                                            criminalid))
+                                            request.form.get('add').lower(),criminalid)) 
                             conn.commit()
-                            flash(f'Updated with image {criminalid}')
+                            flash(f'updated with image{criminalid}')
                     else:
-                        cursor.execute('''UPDATE criminal SET NAME=%s,PHONENUMBER=%s,AGE=%s,GENDER=%s,DOB=%s,JAILED=%s,ADDRESS=%s WHERE ID=%s''',
-                                       (request.form.get("criminal_name"),
-                                        request.form.get('phone'),
-                                        request.form.get('age'),
-                                        request.form.get('gen'),
-                                        request.form.get('dob'),
-                                        request.form.get('jailed'),
-                                        request.form.get('add').lower(),
-                                        criminalid))
+                        cursor.execute('''UPDATE criminal SET NAME=?,PHONENUMBER=?,AGE=?,GENDER=?,DOB=?,JAILED=?,ADDRESS=? WHERE ID=?''',
+                                           (request.form.get("criminal_name"), 
+                                            request.form.get('phone'), 
+                                            request.form.get('age'), 
+                                            request.form.get('gen'),
+                                            request.form.get('dob'),
+                                            request.form.get('jailed'),
+                                            request.form.get('add').lower(),criminalid))
                         conn.commit()
-                        flash(f'Updated without image {criminalid}')
-            except psycopg2.Error as e:
-                print(f"PostgreSQL error: {e}")
+                        flash(f'updated without image{criminalid}')
+            except:
                 conn.rollback()
-                flash('Update failed')
-            finally:
-                conn.close()
-            return redirect(url_for('criminal', username=username))
+                flash('not updated --failed')
+            conn.close()
+            return redirect(url_for('criminal',username=username))
         else:
-            return render_template('notallowed.html', username=username)
+            return render_template('notallowed.html',username=username)
     else:
         return render_template('login.html')
 
